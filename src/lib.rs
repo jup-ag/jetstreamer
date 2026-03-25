@@ -129,6 +129,7 @@ use jetstreamer_firehose::{epochs::slot_to_epoch, index::get_index_base_url};
 use jetstreamer_plugin::{
     Plugin, PluginRunner, PluginRunnerError,
     plugins::{
+        datapipes_bridge::DatapipesBridgePlugin,
         instruction_tracking::InstructionTrackingPlugin, program_tracking::ProgramTrackingPlugin,
     },
 };
@@ -569,6 +570,8 @@ pub enum BuiltinPlugin {
     ProgramTracking,
     /// Instruction Tracking.
     InstructionTracking,
+    /// Datapipes Bridge: outputs protobuf BlockMessages to stdout.
+    DatapipesBridge,
 }
 
 impl BuiltinPlugin {
@@ -576,6 +579,7 @@ impl BuiltinPlugin {
         match value {
             "program-tracking" => Some(Self::ProgramTracking),
             "instruction-tracking" => Some(Self::InstructionTracking),
+            "datapipes-bridge" => Some(Self::DatapipesBridge),
             _ => None,
         }
     }
@@ -584,6 +588,7 @@ impl BuiltinPlugin {
         match self {
             Self::ProgramTracking => Box::new(ProgramTrackingPlugin::new()),
             Self::InstructionTracking => Box::new(InstructionTrackingPlugin::new()),
+            Self::DatapipesBridge => Box::new(DatapipesBridgePlugin::new()),
         }
     }
 }
@@ -632,7 +637,7 @@ pub fn parse_cli_args() -> Result<Config, Box<dyn std::error::Error>> {
                     .ok_or_else(|| "--with-plugin requires a plugin name".to_string())?;
                 let plugin = BuiltinPlugin::from_flag(&plugin_name).ok_or_else(|| {
                     format!(
-                        "unknown plugin '{plugin_name}'. expected 'program-tracking' or 'instruction-tracking'"
+                        "unknown plugin '{plugin_name}'. expected 'program-tracking', 'instruction-tracking', or 'datapipes-bridge'"
                     )
                 })?;
                 builtin_plugins.push(plugin);
