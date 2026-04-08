@@ -12,7 +12,9 @@ use crate::{Plugin, PluginFuture};
 use jetstreamer_firehose::firehose::{BlockData, TransactionData};
 
 /// Per-slot accumulator: maps each pubkey to its mention count within that slot.
-static PENDING_BY_SLOT: Lazy<DashMap<u64, DashMap<Address, u32>>> = Lazy::new(DashMap::new);
+static PENDING_BY_SLOT: Lazy<
+    DashMap<u64, DashMap<Address, u32, ahash::RandomState>, ahash::RandomState>,
+> = Lazy::new(|| DashMap::with_hasher(ahash::RandomState::new()));
 
 #[derive(Row, Deserialize, Serialize, Copy, Clone, Debug)]
 struct PubkeyMention {
@@ -104,7 +106,9 @@ impl Plugin for PubkeyStatsPlugin {
             }
 
             let slot = transaction.slot;
-            let slot_entry = PENDING_BY_SLOT.entry(slot).or_default();
+            let slot_entry = PENDING_BY_SLOT
+                .entry(slot)
+                .or_insert_with(|| DashMap::with_hasher(ahash::RandomState::new()));
             for pubkey in account_keys {
                 *slot_entry.entry(*pubkey).or_insert(0) += 1;
             }
